@@ -38,11 +38,18 @@ header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content:
 .brand { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(26px, 5vw, 40px); margin: 0; letter-spacing: 0.02em; color: var(--bone); text-wrap: balance; }
 .whisper { font-family: var(--f-label); font-weight: 300; font-size: 11px; letter-spacing: 0.08em; color: var(--dim); margin: 0; max-width: 52ch; }
-.strip { display: flex; flex-wrap: wrap; gap: 6px; }
+/* selector: one glyph per transmission, stacked down the left edge.
+   Bits are right-aligned over hidden pads, so the column reads as a numeral. */
+.rail {
+  display: flex; flex-direction: column; gap: 6px;
+  position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px);
+  max-height: calc(100dvh - 32px); overflow-y: auto; /* a long set must not strand its own tail */
+}
 .glyph {
   appearance: none; border: 1px solid var(--rule); background: transparent; border-radius: 3px;
-  padding: 7px 7px; display: flex; gap: 3px; cursor: pointer; align-items: center;
+  padding: 7px 7px; display: flex; gap: 3px; cursor: pointer; align-items: center; justify-content: flex-end;
 }
+.glyph i.pad { visibility: hidden; }
 .glyph i { width: 5px; height: 5px; border-radius: 50%; border: 1px solid var(--dim); display: block; }
 .glyph i.on { background: var(--dim); }
 .glyph.solved i { border-color: var(--ice); }
@@ -53,11 +60,26 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(26px, 5vw
 .glyph:disabled { opacity: 0.25; cursor: default; }
 .glyph:focus-visible, button:focus-visible, .line:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
 
-/* main grid */
-main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 28px; align-items: start; }
-@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+/* main grid: rail | transmission | lens */
+main { display: grid; grid-template-columns: auto minmax(0, 1.35fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 1000px) { main { grid-template-columns: auto minmax(0, 1fr); } .lens { grid-column: 2; } }
+@media (max-width: 620px) {
+  /* Too narrow for a rail: lay the selector back out across the top. */
+  main { grid-template-columns: minmax(0, 1fr); }
+  .lens { grid-column: auto; }
+  .rail { flex-direction: row; flex-wrap: wrap; position: static; max-height: none; overflow: visible; }
+  .glyph { justify-content: flex-start; }
+  .glyph i.pad { display: none; }
+}
 
 .label { font-family: var(--f-label); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); }
+
+/* the open transmission announces itself; the rail stays wordless */
+.open { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px; }
+.open h2 {
+  font-family: var(--f-display); font-weight: 400; font-size: clamp(19px, 3vw, 25px);
+  margin: 0; color: var(--bone); letter-spacing: 0.02em; text-wrap: balance;
+}
 
 .feed { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--rule); }
 .waiting { padding: 14px 4px; margin: 0; animation: pulse 1.8s ease-in-out infinite; }
@@ -153,11 +175,16 @@ footer button:hover { color: var(--rose); }
       <h1>signal from mars</h1>
       <p class="whisper">Each line becomes what follows its arrow. The last line has not arrived yet.</p>
     </div>
-    <nav class="strip" id="strip" aria-label="Transmissions"></nav>
   </header>
 
   <main>
-    <section aria-label="Transmission">
+    <nav class="rail" id="rail" aria-label="Transmissions"></nav>
+
+    <section aria-labelledby="openTitle">
+      <div class="open">
+        <span class="label" id="openIndex"></span>
+        <h2 id="openTitle"></h2>
+      </div>
       <!-- Stands in until puzzles.json lands; every path that fills the feed clears it. -->
       <div class="feed" id="feed"><p class="label waiting">Listening&hellip;</p></div>
       <div class="reply">
@@ -207,6 +234,7 @@ function puzzleFile() {
 // Loading can fail in ways only the author sees: a typo in the JSON, a program
 // that will not parse, a question that crashes. Say so in the page, plainly.
 function noSignal(detail) {
+  $('openTitle').textContent = 'No signal';
   $('feed').innerHTML = `<div class="line"><code class="prog">puzzles</code>`
     + `<span class="arrow" aria-hidden="true">→</span><code class="res crash">✕</code></div>`;
   $('readout').innerHTML = `<span class="err">${esc(detail)}</span>`;
@@ -326,22 +354,30 @@ function lineEl(src, kind) {
   return el;
 }
 
-function renderStrip() {
-  const strip = $('strip'); strip.innerHTML = '';
+// The rail names no levels: a transmission is a number until you open it.
+function renderRail() {
+  const rail = $('rail'); rail.innerHTML = '';
   const open = maxOpen();
+  const width = LEVELS.length.toString(2).length; // pad every glyph to the widest numeral
   LEVELS.forEach((_, i) => {
     const b = document.createElement('button');
     b.className = 'glyph' + (state.solved.has(i) ? ' solved' : '') + (i === state.cur ? ' current' : '');
     b.disabled = i > open;
+    // Numbers only, like the dots — the title is announced by the heading when it opens.
     b.setAttribute('aria-label', `Transmission ${i + 1}${state.solved.has(i) ? ', received' : ''}`);
-    b.innerHTML = (i + 1).toString(2).split('').map(c => `<i class="${c === '1' ? 'on' : ''}"></i>`).join('');
+    if (i === state.cur) b.setAttribute('aria-current', 'step');
+    const bits = (i + 1).toString(2);
+    b.innerHTML = '<i class="pad"></i>'.repeat(width - bits.length)
+      + bits.split('').map(c => `<i class="${c === '1' ? 'on' : ''}"></i>`).join('');
     b.addEventListener('click', () => { state.cur = i; save(); renderLevel(); });
-    strip.appendChild(b);
+    rail.appendChild(b);
   });
 }
 
 function renderLevel() {
   const L = LEVELS[state.cur];
+  $('openIndex').textContent = `Transmission ${state.cur + 1} of ${LEVELS.length}`;
+  $('openTitle').textContent = L.title;
   const feed = $('feed'); feed.innerHTML = '';
   const shown = state.revealed[state.cur] || 0;
   let delay = 0;
@@ -361,7 +397,7 @@ function renderLevel() {
   const v = $('verdict');
   v.className = 'verdict' + (solved ? ' yes' : '');
   v.textContent = solved ? (state.cur === LEVELS.length - 1 ? 'Received. The signal goes quiet.' : 'Received.') : '';
-  renderStrip();
+  renderRail();
   onInput();
   if (!solved) drawTree(ask._prog, 'the last line');
 }

@@ -120,7 +120,7 @@ export function run(prog) {
 // Programs may use $NAME to splice in an entry from the document's "macros",
 // so a reusable core (DEC, and whatever comes next) is written down once.
 const MACRO = /\$([A-Z][A-Z0-9_]*)/g;
-const LEVEL_KEYS = new Set(['ex', 'more', 'q', 'unlockAxes', 'note']);
+const LEVEL_KEYS = new Set(['title', 'ex', 'more', 'q', 'unlockAxes', 'note']);
 
 function expand(src, macros, trail = []) {
   return src.replace(MACRO, (_, name) => {
@@ -154,6 +154,9 @@ export function loadLevels(doc) {
       if (!Array.isArray(v)) { bad(`${what} must be an array of programs`); return []; }
       return v.map((s, k) => prog(s, `${what}[${k}]`)).filter(s => s != null);
     };
+    // Shown once the level is open. Required, because a level with no title
+    // leaves a blank heading where the player expects to be told where they are.
+    if (typeof L.title !== 'string' || !L.title.trim()) bad('needs a "title" string');
     // Only complain about an empty "ex" when it really is empty — an example that
     // failed to parse has already said so, and need not also be counted missing.
     if (L.ex == null) bad('needs an "ex" array of examples');
@@ -162,7 +165,7 @@ export function loadLevels(doc) {
     const q = prog(L.q, '"q"');
     // A crashing question is unanswerable: there is no way to type the "✕".
     if (q != null && !run(parse(q)).ok) bad('"q" crashes, so it has no answer to type');
-    return { ex, more: list(L.more, '"more"'), q, unlockAxes: L.unlockAxes === true };
+    return { title: typeof L.title === 'string' ? L.title.trim() : '', ex, more: list(L.more, '"more"'), q, unlockAxes: L.unlockAxes === true };
   });
   if (problems.length) throw new Error(problems.join('\n'));
   return levels;

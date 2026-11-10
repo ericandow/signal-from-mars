@@ -75,7 +75,8 @@ A Nock 4K interpreter, exported as plain functions. Imported unchanged by both t
 {
   "macros": { "DEC": "[8 [1 0] …]" },      // $NAME splices one of these into any program
   "levels": [
-    { "ex":  ["…"],      // examples shown with their results
+    { "title": "…",      // required; shown once the level is open, never in the rail
+      "ex":  ["…"],      // examples shown with their results
       "more": ["…"],     // held back behind "Another example"; optional
       "q":   "…",        // the line the player must answer
       "unlockAxes": true,// optional; solving this reveals axis numbers in the lens, for good
@@ -96,14 +97,16 @@ Every string is a **complete program noun** `[subject formula]`.
 Markup, the whole stylesheet (committed dark theme, all colors as `--void`/`--bone`/`--ice`… custom properties), then the UI as one inline `<script type="module">`:
 
 - **Loading** — `puzzleFile()` resolves `?puzzles=` against the page and refuses other origins; failures call `noSignal()`, which writes the problem list into the readout, disables the controls, and rethrows so nothing runs without levels. `.readout .err` is `pre-wrap` so the multi-line message from `loadLevels` stays one problem per line. Because the levels now arrive over the network, the feed ships with a `.waiting` placeholder in the markup so the first paint isn't an empty console; `renderLevel` and `noSignal` both clear the feed, so nothing has to remove it.
-- **State** — `{cur, solved: Set, revealed}` persisted to `localStorage` under `KEY = 'signal-from-mars-v1'`. Bump that key if the saved shape changes. `WAS` is the pre-rename key (`noun-signal-v1`), read only as a fallback so old saves survive — deletable once nobody is carrying one. `maxOpen()` decides which transmissions in the header strip are reachable (binary dot-glyphs encode the level number).
+- **State** — `{cur, solved: Set, revealed}` persisted to `localStorage` under `KEY = 'signal-from-mars-v1'`. Bump that key if the saved shape changes. `WAS` is the pre-rename key (`noun-signal-v1`), read only as a fallback so old saves survive — deletable once nobody is carrying one. `maxOpen()` decides which transmissions in the rail are reachable.
 - **Highlighting** — `highlight(src, {caret, errAt})` re-lexes with the engine's `tokenize`, colors brackets by nesting depth modulo 4 (`.d0`–`.d3`), marks unbalanced brackets and the error offset as `.bad`, and highlights the bracket pair around the caret.
 - **Lens** — `drawTree(noun)` emits inline SVG: an in-order walk assigns each leaf the next x slot and each cell the midpoint of its children, so the tree needs no layout library. Axis numbers are drawn only once `axesUnlocked()`.
+- **Layout** — a three-column grid: `.rail` | the open transmission | `.lens`. The rail (`renderRail`) is one glyph per level down the left edge, each a binary numeral in dots, right-aligned over hidden `i.pad` spacers so the column lines up at the ones place; it is sticky and scrolls internally, so a long level set can't strand its own tail. At ≤1000px the lens drops below the transmission; at ≤620px the rail lays back out horizontally above it and the pads are dropped.
 - **Rendering / input** — `lineEl` builds one `*program → result` row and pins the lens on click/Enter; `renderLevel` rebuilds the feed with staggered `animationDelay`. The reply field is the standard overlay trick: a transparent `<textarea>` on top of a `<pre>` holding the highlighted copy — both must keep identical font, padding, border, and wrapping rules or the caret drifts.
 
 ## Conventions worth preserving
 
 - Prose in the UI stays diegetic and spare ("Received.", "The shape is wrong.") — no mention of Nock, Urbit, opcodes, or axes anywhere the player can see. `unlockAxes` exists because the lens is allowed to teach only what the player has earned. The one exception is puzzle-loading failures, which are for the author and say exactly what is wrong.
-- `puzzles.json` ships to players, so it carries no explanatory notes by default — the curriculum lives here instead.
+- `puzzles.json` ships to players, so it carries no explanatory notes by default — the curriculum lives here instead. Titles follow the same rule: they orient without naming the mechanism ("one more", not "increment"), because a title that gives away the lesson is the textbook this game is trying not to be.
+- The rail stays wordless — dots only, and the same for its `aria-label`s. A transmission is a number until it is opened; the title is the reward for selecting it.
 - Wrong answers are distinguished by `sameShape` so feedback can say "the shape is right; some numbers are not" without leaking the answer.
 - Keep the accessibility affordances already in place: `aria-label`s on the strip buttons and lens SVG, `role="status"` on the verdict, keyboard activation on feed lines, and the `prefers-reduced-motion` block.

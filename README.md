@@ -25,11 +25,12 @@ python3 -m http.server 8000 -d site     # then http://localhost:8000/
 Edit `site/puzzles.json` and reload — nothing else to touch. Each level is
 
 ```json
-{"ex": ["[7 1 42]"], "more": ["[0 1 0]"], "q": "[[8 8] 1 [0 6]]"}
+{"title": "nothing but itself", "ex": ["[7 1 42]"], "more": ["[0 1 0]"], "q": "[[8 8] 1 [0 6]]"}
 ```
 
-where every string is a whole Nock program: `ex` is shown with its answer, `more` is held back
-behind "Another example", and `q` is the one the player has to work out. Answers are computed by
+where every program string is a whole Nock program: `ex` is shown with its answer, `more` is held
+back behind "Another example", and `q` is the one the player has to work out. The `title` appears
+when the level is opened — the selector down the left side stays wordless. Answers are computed by
 running the program, so there is nothing to keep in sync. `$NAME` splices in an entry from
 `macros` at the top of the file.
 

@@ -24,7 +24,7 @@ levels.forEach((L, i) => {
     onPurpose ? `${onPurpose} crashing` : null,
     L.unlockAxes ? 'unlocks axes' : null,
   ].filter(Boolean);
-  console.log(`${String(i + 1).padStart(2)}  ${fmt(run(parse(L.q)).v).padEnd(14)} ${notes.join(', ')}`);
+  console.log(`${String(i + 1).padStart(2)}  ${L.title.padEnd(20)} ${fmt(run(parse(L.q)).v).padEnd(14)} ${notes.join(', ')}`);
 });
 
 console.log(`\n${levels.length} levels, every question answerable.`);
