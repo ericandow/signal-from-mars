@@ -397,7 +397,8 @@ function renderLevel() {
   $('answer').value = solved ? fmt(run(parse(L.q)).v) : '';
   $('answer').disabled = solved;
   $('send').disabled = solved;
-  $('more').disabled = shown >= L.more.length || solved;
+  // Still offered after it is solved: more examples are how you check the rule you guessed.
+  $('more').disabled = shown >= L.more.length;
   $('next').hidden = !(solved && state.cur < LEVELS.length - 1);
   $('field').className = 'field' + (solved ? ' right' : '');
   const v = $('verdict');
