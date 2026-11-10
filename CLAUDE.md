@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A puzzle game about deciphering an alien (programming?) language — the language is **Nock** (Urbit's combinator calculus). The player is shown example programs and their results, and must infer what an unseen program evaluates to.
 
-The entire game is one self-contained file: `site/index.html` (in-game title: "noun signal"). There is no build step, no package manager, no dependency manifest, and no test suite. "Run" means opening the file in a browser:
+The entire game is one self-contained file: `site/index.html`. There is no build step, no package manager, no dependency manifest, and no test suite. "Run" means opening the file in a browser:
 
 ```
 xdg-open site/index.html
@@ -48,7 +48,7 @@ Top: a small boilerplate `<head>` reset, then the game's own `<style>` (committe
 - `unlockAxes: true` on a level means solving it permanently turns on axis labels in the lens (`axesUnlocked()` derives this from `state.solved`, so it survives level navigation and reloads).
 - Level order is the curriculum: opcode 1, cell sugar, slots 2/3, deeper axes, 4, 3, 5, autocons, 7, 6, 8, 2, 10, 11, 9, then the `DEC` decrement core as the finale.
 
-**`// ---------- state`** — `state = {cur, solved: Set, revealed}` persisted to `localStorage` under `KEY = 'noun-signal-v1'`. Bump that key if the saved shape changes. `maxOpen()` decides which transmissions in the header strip are reachable (binary dot-glyphs encode the level number).
+**`// ---------- state`** — `state = {cur, solved: Set, revealed}` persisted to `localStorage` under `KEY = 'signal-from-mars-v1'`. Bump that key if the saved shape changes. `WAS` is the pre-rename key (`noun-signal-v1`), read only as a fallback so old saves survive — deletable once nobody is carrying one. `maxOpen()` decides which transmissions in the header strip are reachable (binary dot-glyphs encode the level number).
 
 **`// ---------- highlighting`** — `highlight(src, {caret, errAt})` re-lexes the source, colors brackets by nesting depth modulo 4 (`.d0`–`.d3`), marks unbalanced brackets and the error offset as `.bad`, and highlights the bracket pair around the caret.
 

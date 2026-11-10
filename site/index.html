@@ -1,5 +1,5 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
-<title>Noun Signal</title>
+<title>Signal From Mars</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -149,7 +149,7 @@ footer button:hover { color: var(--rose); }
 <div class="wrap">
   <header>
     <div class="brand">
-      <h1>noun signal</h1>
+      <h1>signal from mars</h1>
       <p class="whisper">Each line becomes what follows its arrow. The last line has not arrived yet.</p>
     </div>
     <nav class="strip" id="strip" aria-label="Transmissions"></nav>
@@ -327,10 +327,11 @@ const LEVELS = [
 
 
 // ---------- state ----------
-const KEY = 'noun-signal-v1';
-const state = { cur: 0, solved: new Set(), revealed: {}, lensAxes: false };
+const KEY = 'signal-from-mars-v1';
+const WAS = 'noun-signal-v1'; // saves from before the rename; same shape, so just read it
+const state = { cur: 0, solved: new Set(), revealed: {} };
 try {
-  const raw = JSON.parse(localStorage.getItem(KEY) || 'null');
+  const raw = JSON.parse(localStorage.getItem(KEY) || localStorage.getItem(WAS) || 'null');
   if (raw) { state.cur = raw.cur || 0; state.solved = new Set(raw.solved || []); state.revealed = raw.revealed || {}; }
 } catch (e) {}
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ cur: state.cur, solved: [...state.solved], revealed: state.revealed })); } catch (e) {} };
@@ -524,6 +525,7 @@ let armed = false;
 $('reset').addEventListener('click', e => {
   if (!armed) { armed = true; e.target.textContent = 'Click again to forget everything'; setTimeout(() => { armed = false; e.target.textContent = 'Forget progress'; }, 3000); return; }
   state.cur = 0; state.solved = new Set(); state.revealed = {}; save();
+  try { localStorage.removeItem(WAS); } catch (e) {}
   armed = false; e.target.textContent = 'Forget progress'; renderLevel();
 });
 
