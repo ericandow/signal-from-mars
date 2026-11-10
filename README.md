@@ -20,6 +20,13 @@ The page uses ES modules and `fetch`, so it needs to be served rather than opene
 python3 -m http.server 8000 -d site     # then http://localhost:8000/
 ```
 
+```sh
+node tools/test-engine.js               # tests for the interpreter
+node tools/nock.js '[5 4 0 1]'          # what does this program do?
+```
+
+Both of the checks below run in CI before anything deploys.
+
 ## Writing puzzles
 
 Edit `site/puzzles.json` and reload — nothing else to touch. Each level is

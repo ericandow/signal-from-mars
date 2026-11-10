@@ -16,7 +16,21 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Nothing ships that fails these. Both are plain node, no install step.
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Engine tests
+        run: node tools/test-engine.js
+      - name: Puzzles load
+        run: node tools/check-puzzles.js
+
   deploy:
+    needs: check
     runs-on: ubuntu-latest
     environment:
       name: github-pages

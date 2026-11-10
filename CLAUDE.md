@@ -10,7 +10,10 @@ A puzzle game about deciphering an alien (programming?) language — the languag
 site/index.html    markup, all the CSS, and the UI as an inline ES module
 site/engine.js     the Nock interpreter + the puzzles.json format. No DOM.
 site/puzzles.json  the levels, fetched at run time
+site/icon.svg      favicon: the dot-numeral glyph from the rail
+tools/test-engine.js    the interpreter's tests. Self-contained.
 tools/check-puzzles.js  validates a puzzles file the way the browser does
+tools/nock.js           evaluates one program, for writing levels
 package.json       no dependencies; exists only so node reads .js as ES modules
 ```
 
@@ -29,22 +32,32 @@ python3 -m http.server 8000 -d site     # then http://localhost:8000/
 file can be played without touching `puzzles.json`. Puzzles are fetched with `cache: 'no-store'`,
 so editing the file and reloading is enough — no cache busting needed.
 
-Check a puzzles file before (or instead of) loading it in a browser:
-
 ```sh
+node tools/test-engine.js                   # the interpreter and the loader
 node tools/check-puzzles.js                 # site/puzzles.json
 node tools/check-puzzles.js path/to/x.json
+node tools/nock.js '[5 4 0 1]'              # evaluate one program
+node tools/nock.js '[11 $DEC]'              # macros from puzzles.json work here
 ```
 
-It prints each level's answer and exits non-zero if the file would fail to load.
+Both checks exit non-zero on failure and run in CI before anything deploys.
+`check-puzzles` prints each level's answer; `nock.js` prints a program's subject,
+formula and result, which is the quickest way to find out what a candidate level does.
+
+`test-engine.js` is deliberately self-contained — it keeps its own copy of the `DEC`
+core so that rewording a level can't break the interpreter's tests. It has been
+mutation-checked: breaking `+1` in opcode 4, flipping the bit order in `slot`, or
+skipping opcode 11's hint evaluation each make it fail.
 
 The only external requests are the Google Fonts `<link>`s; without network the CSS falls back to local monospace, which is fine.
 
 ## Publishing
 
 Live at **https://ericandow.github.io/signal-from-mars/**. Every push to `main` runs
-`.github/workflows/pages.yml`, which uploads **`site/` and only `site/`** as the Pages artifact
-and deploys it — so `README.md`, `CLAUDE.md`, `tools/`, and `.jj/` never reach the public site.
+`.github/workflows/pages.yml`: a `check` job runs the engine tests and loads the puzzles, and
+`deploy` `needs:` it, so a broken interpreter or an unloadable level set never reaches the site.
+Deploy uploads **`site/` and only `site/`** as the Pages artifact — so `README.md`, `CLAUDE.md`,
+`tools/`, and `.jj/` never reach the public site.
 
 Consequences worth keeping in mind:
 - Anything the game needs at run time must live under `site/`; the workflow needs no change when files are added there.
@@ -95,13 +108,18 @@ is the same lexer, but puzzle files should stay with brackets — that is the fo
 
 ## `site/index.html`
 
-Markup, the whole stylesheet (committed dark theme, all colors as `--void`/`--bone`/`--ice`… custom properties), then the UI as one inline `<script type="module">`:
+A real `<head>` (title, description, OG tags, `lang`, the `icon.svg` favicon, fonts, then the
+stylesheet), the whole stylesheet (committed dark theme, all colors as `--void`/`--bone`/`--ice`…
+custom properties), and the UI as one inline `<script type="module">`:
+
+- **Boot watchdog** — a tiny *classic* script before the module sets a 10s timer and writes "The receiver never started" into the feed unless the module cleared `window.__receiverStarted`. It cannot be inside the module: the failures it exists to report (engine.js missing, a syntax error, no module support) are exactly the ones that stop the module from running at all. A slow `puzzles.json` is a different thing and keeps the "Listening…" line.
 
 - **Loading** — `puzzleFile()` resolves `?puzzles=` against the page and refuses other origins; failures call `noSignal()`, which writes the problem list into the readout, disables the controls, and rethrows so nothing runs without levels. `.readout .err` is `pre-wrap` so the multi-line message from `loadLevels` stays one problem per line. Because the levels now arrive over the network, the feed ships with a `.waiting` placeholder in the markup so the first paint isn't an empty console; `renderLevel` and `noSignal` both clear the feed, so nothing has to remove it.
 - **State** — `{cur, solved: Set, revealed}` persisted to `localStorage` under `KEY = 'signal-from-mars-v1'`. Bump that key if the saved shape changes. `WAS` is the pre-rename key (`noun-signal-v1`), read only as a fallback so old saves survive — deletable once nobody is carrying one. `maxOpen()` decides which transmissions in the rail are reachable.
 - **Highlighting** — `highlight(src, {caret, errAt})` re-lexes with the engine's `tokenize`, colors brackets by nesting depth modulo 4 (`.d0`–`.d3`), marks unbalanced brackets and the error offset as `.bad`, and highlights the bracket pair around the caret.
 - **Lens** — `drawTree(noun)` emits inline SVG: an in-order walk assigns each leaf the next x slot and each cell the midpoint of its children, so the tree needs no layout library. Axis numbers are drawn only once `axesUnlocked()`.
 - **Layout** — a three-column grid: `.rail` | the open transmission | `.lens`. The rail (`renderRail`) runs down the left edge, each glyph a binary numeral in dots, right-aligned over hidden `i.pad` spacers so the column lines up at the ones place; it is sticky and scrolls internally, so a long level set can't strand its own tail. At ≤1000px the lens drops below the transmission; at ≤620px the rail lays back out horizontally above it and the pads are dropped.
+- **Rail keyboard access** — a roving tabindex: exactly one glyph carries `tabIndex = 0` (the current one), the rest `-1`, so Tab reaches the rail once instead of walking every level. A `keydown` on the rail container moves focus with the arrow keys (both axes, since the rail turns horizontal when narrow) plus Home/End, clamped at the ends. It moves focus only — opening is still Enter or Space on the button, which keeps `renderLevel` from yanking focus out from under the arrow keys when it rebuilds the rail.
 - **What the rail reveals** — only `maxOpen() + 1` glyphs, so the set appears to end where the player has reached; solving the last visible one makes the next arrive with `.arriving`. `railShown` holds the previous count so only genuinely new glyphs animate, and stays `null` until the first render so a reload doesn't replay the whole history. Pad width comes from the *visible* count, not `LEVELS.length` — padding to the full set would quietly advertise how many are still to come, which is also why the index line reads "Transmission 3" with no total.
 - **Rendering / input** — `lineEl` builds one `*program → result` row and pins the lens on click/Enter; `renderLevel` rebuilds the feed with staggered `animationDelay`. The reply field is the standard overlay trick: a transparent `<textarea>` on top of a `<pre>` holding the highlighted copy — both must keep identical font, padding, border, and wrapping rules or the caret drifts.
 

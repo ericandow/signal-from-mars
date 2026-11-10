@@ -130,11 +130,11 @@ export function run(prog) {
 const MACRO = /\$([A-Z][A-Z0-9_]*)/g;
 const LEVEL_KEYS = new Set(['title', 'ex', 'more', 'q', 'unlockAxes', 'note']);
 
-function expand(src, macros, trail = []) {
+export function expandMacros(src, macros, trail = []) {
   return src.replace(MACRO, (_, name) => {
     if (!(name in macros)) throw new Error(`no macro named $${name}`);
     if (trail.includes(name)) throw new Error(`macro $${name} expands into itself`);
-    return expand(macros[name], macros, [...trail, name]);
+    return expandMacros(macros[name], macros, [...trail, name]);
   });
 }
 
@@ -153,7 +153,7 @@ export function loadLevels(doc) {
     const prog = (s, what) => {
       if (typeof s !== 'string') { bad(`${what} must be a program string`); return null; }
       let out;
-      try { out = expand(s, macros); } catch (e) { bad(`${what}: ${e.message}`); return null; }
+      try { out = expandMacros(s, macros); } catch (e) { bad(`${what}: ${e.message}`); return null; }
       try { parse(out); } catch (e) { bad(`${what}: ${e.message} (${out})`); return null; }
       return out;
     };
