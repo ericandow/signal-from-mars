@@ -60,6 +60,7 @@ main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); g
 .label { font-family: var(--f-label); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); }
 
 .feed { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--rule); }
+.waiting { padding: 14px 4px; margin: 0; animation: pulse 1.8s ease-in-out infinite; }
 .line {
   display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, max-content); gap: 6px 14px; align-items: baseline;
   padding: 12px 4px; border-bottom: 1px solid var(--rule); cursor: pointer;
@@ -142,7 +143,7 @@ footer button { background: none; border: 0; color: var(--dim); font-family: var
 footer button:hover { color: var(--rose); }
 
 @media (prefers-reduced-motion: reduce) {
-  .line, .line.just-solved, .line.ask .res.unknown { animation: none; }
+  .line, .line.just-solved, .line.ask .res.unknown, .waiting { animation: none; }
 }
 </style>
 
@@ -157,7 +158,8 @@ footer button:hover { color: var(--rose); }
 
   <main>
     <section aria-label="Transmission">
-      <div class="feed" id="feed"></div>
+      <!-- Stands in until puzzles.json lands; every path that fills the feed clears it. -->
+      <div class="feed" id="feed"><p class="label waiting">Listening&hellip;</p></div>
       <div class="reply">
         <div class="field" id="field">
           <pre id="hl" aria-hidden="true"></pre>
