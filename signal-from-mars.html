@@ -1,0 +1,533 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Noun Signal</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Major+Mono+Display&family=Martian+Mono:wght@300;400&display=swap">
+<style>
+/* Layout: a receiver console. Left: the incoming lines and the reply field. Right: a lens that draws any noun as a tree. Single committed dark look. */
+:root {
+  --void: #0f1118;
+  --panel: #161923;
+  --rule: #272b3a;
+  --bone: #e4dfd2;
+  --dim: #858aa1;
+  --ice: #9ed6d1;
+  --amber: #e2b46c;
+  --lilac: #b6a7ea;
+  --sand: #c8c08e;
+  --rose: #e88b90;
+  --f-display: "Major Mono Display", "IBM Plex Mono", ui-monospace, monospace;
+  --f-noun: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --f-label: "Martian Mono", "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+html { background: var(--void); }
+body {
+  background: var(--void); color: var(--bone);
+  font-family: var(--f-noun); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 40px;
+  min-height: 100%;
+}
+.wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 28px; }
+
+/* header */
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 18px 32px; }
+.brand { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(26px, 5vw, 40px); margin: 0; letter-spacing: 0.02em; color: var(--bone); text-wrap: balance; }
+.whisper { font-family: var(--f-label); font-weight: 300; font-size: 11px; letter-spacing: 0.08em; color: var(--dim); margin: 0; max-width: 52ch; }
+.strip { display: flex; flex-wrap: wrap; gap: 6px; }
+.glyph {
+  appearance: none; border: 1px solid var(--rule); background: transparent; border-radius: 3px;
+  padding: 7px 7px; display: flex; gap: 3px; cursor: pointer; align-items: center;
+}
+.glyph i { width: 5px; height: 5px; border-radius: 50%; border: 1px solid var(--dim); display: block; }
+.glyph i.on { background: var(--dim); }
+.glyph.solved i { border-color: var(--ice); }
+.glyph.solved i.on { background: var(--ice); }
+.glyph.current { border-color: var(--bone); }
+.glyph.current i { border-color: var(--bone); }
+.glyph.current i.on { background: var(--bone); }
+.glyph:disabled { opacity: 0.25; cursor: default; }
+.glyph:focus-visible, button:focus-visible, .line:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
+
+/* main grid */
+main { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 860px) { main { grid-template-columns: minmax(0, 1fr); } }
+
+.label { font-family: var(--f-label); font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--dim); }
+
+.feed { display: flex; flex-direction: column; gap: 0; border-top: 1px solid var(--rule); }
+.line {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, max-content); gap: 6px 14px; align-items: baseline;
+  padding: 12px 4px; border-bottom: 1px solid var(--rule); cursor: pointer;
+  animation: arrive 420ms ease-out both;
+}
+.line:hover { background: color-mix(in srgb, var(--panel) 70%, transparent); }
+.line.pinned { background: var(--panel); }
+.prog, .res { font-family: var(--f-noun); font-size: 15px; white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; }
+.prog .star { color: var(--dim); margin-right: 1px; }
+.arrow { color: var(--dim); font-family: var(--f-noun); }
+.res { color: var(--bone); font-weight: 500; }
+.res.crash { color: var(--rose); }
+.line.ask .res { color: var(--ice); }
+.line.ask .res.unknown { animation: pulse 1.8s ease-in-out infinite; }
+.line.hint { border-bottom-style: dashed; }
+@media (max-width: 520px) {
+  .line { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .arrow { display: none; }
+  .res::before { content: "→ "; color: var(--dim); font-weight: 400; }
+}
+@keyframes arrive { from { opacity: 0.12; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes pulse { 50% { opacity: 0.35; } }
+@keyframes solvedFlash { from { background: color-mix(in srgb, var(--ice) 22%, transparent); } to { background: transparent; } }
+.line.just-solved { animation: solvedFlash 1.2s ease-out both; }
+
+/* syntax colors */
+.d0 { color: var(--ice); } .d1 { color: var(--amber); } .d2 { color: var(--lilac); } .d3 { color: var(--sand); }
+.num { color: var(--bone); }
+.bad { color: var(--rose); text-decoration: underline wavy var(--rose); text-underline-offset: 3px; }
+.match { background: color-mix(in srgb, var(--bone) 18%, transparent); border-radius: 2px; }
+
+/* reply */
+.reply { display: flex; flex-direction: column; gap: 10px; margin-top: 22px; }
+.field { position: relative; }
+.field textarea, .field pre {
+  font-family: var(--f-noun); font-size: 17px; line-height: 1.5; letter-spacing: 0;
+  padding: 12px 14px; margin: 0; border: 1px solid var(--rule); border-radius: 4px;
+  white-space: pre-wrap; overflow-wrap: anywhere; word-break: normal; tab-size: 2;
+  width: 100%; box-sizing: border-box; min-height: 52px;
+}
+.field pre { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; color: var(--bone); background: var(--panel); }
+.field textarea {
+  position: relative; z-index: 1; display: block; resize: none; background: transparent; color: transparent;
+  -webkit-text-fill-color: transparent; caret-color: var(--bone); outline: none; overflow: hidden;
+}
+.field textarea::placeholder { color: var(--dim); }
+.field textarea:focus { border-color: var(--dim); }
+.field.wrong textarea { border-color: var(--rose); }
+.field.right textarea { border-color: var(--ice); }
+.readout { min-height: 22px; font-size: 13px; color: var(--dim); display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.readout code { font-family: var(--f-noun); color: var(--bone); overflow-wrap: anywhere; }
+.readout .err { color: var(--rose); }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+button.btn {
+  font-family: var(--f-label); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  padding: 10px 16px; border-radius: 3px; cursor: pointer; border: 1px solid var(--rule); background: transparent; color: var(--bone);
+}
+button.btn.primary { background: var(--ice); color: var(--void); border-color: var(--ice); }
+button.btn:disabled { opacity: 0.35; cursor: default; }
+button.btn:not(:disabled):hover { border-color: var(--bone); }
+.verdict { font-size: 14px; min-height: 22px; margin: 0; }
+.verdict.no { color: var(--rose); }
+.verdict.yes { color: var(--ice); }
+
+/* lens */
+.lens { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 16px); display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.lens-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.lens-src { font-size: 12px; color: var(--dim); overflow-wrap: anywhere; }
+.lens-box { border: 1px solid var(--rule); border-radius: 4px; background: var(--panel); overflow: auto; max-height: 70vh; padding: 12px; min-height: 160px; display: flex; }
+.lens-box svg { display: block; margin: auto; }
+.lens-box .empty { margin: auto; color: var(--dim); font-size: 13px; text-align: center; }
+svg .edge { stroke: var(--rule); stroke-width: 1.5; }
+svg .knot { fill: var(--dim); }
+svg .leaf { fill: var(--bone); font-family: var(--f-noun); font-size: 14px; text-anchor: middle; dominant-baseline: central; }
+svg .leafbg { fill: var(--panel); }
+svg .ax { fill: var(--amber); font-family: var(--f-label); font-size: 9px; text-anchor: middle; }
+
+footer { display: flex; justify-content: flex-end; }
+footer button { background: none; border: 0; color: var(--dim); font-family: var(--f-label); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer; padding: 6px 0; }
+footer button:hover { color: var(--rose); }
+
+@media (prefers-reduced-motion: reduce) {
+  .line, .line.just-solved, .line.ask .res.unknown { animation: none; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>noun signal</h1>
+      <p class="whisper">Each line becomes what follows its arrow. The last line has not arrived yet.</p>
+    </div>
+    <nav class="strip" id="strip" aria-label="Transmissions"></nav>
+  </header>
+
+  <main>
+    <section aria-label="Transmission">
+      <div class="feed" id="feed"></div>
+      <div class="reply">
+        <div class="field" id="field">
+          <pre id="hl" aria-hidden="true"></pre>
+          <textarea id="answer" rows="1" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="What the last line becomes" placeholder="what does it become?"></textarea>
+        </div>
+        <div class="readout" id="readout"></div>
+        <div class="actions">
+          <button class="btn primary" id="send">Send</button>
+          <button class="btn" id="more">Another example</button>
+          <button class="btn" id="next" hidden>Next transmission</button>
+        </div>
+        <p class="verdict" id="verdict" role="status"></p>
+      </div>
+    </section>
+
+    <aside class="lens" aria-label="Lens">
+      <div class="lens-head">
+        <span class="label">Lens</span>
+        <span class="lens-src" id="lensSrc"></span>
+      </div>
+      <div class="lens-box" id="lens"></div>
+    </aside>
+  </main>
+
+  <footer><button id="reset">Forget progress</button></footer>
+</div>
+
+<script>
+// ---- engine: nouns, parsing, formatting, evaluation ----
+const isCell = n => Array.isArray(n);
+class Crash extends Error {}
+const crash = (m) => { throw new Crash(m || 'crash'); };
+const need = n => (isCell(n) ? n : crash('expected cell'));
+const atom = n => (isCell(n) ? crash('expected atom') : n);
+
+function tokenize(src) {
+  const toks = [];
+  let i = 0;
+  while (i < src.length) {
+    const ch = src[i];
+    if (/\s/.test(ch)) { const s = i; while (i < src.length && /\s/.test(src[i])) i++; toks.push({ t: 'ws', s, e: i }); }
+    else if (ch === '[' || ch === ']') { toks.push({ t: ch, s: i, e: i + 1 }); i++; }
+    else if (/[0-9]/.test(ch)) { const s = i; while (i < src.length && /[0-9]/.test(src[i])) i++; toks.push({ t: 'num', s, e: i }); }
+    else { toks.push({ t: 'bad', s: i, e: i + 1 }); i++; }
+  }
+  return toks;
+}
+
+function parse(src) {
+  const toks = tokenize(src).filter(t => t.t !== 'ws');
+  let p = 0;
+  const err = (msg, at) => { const e = new Error(msg); e.at = at; throw e; };
+  function noun() {
+    const tk = toks[p];
+    if (!tk) err('The signal ends too soon.', src.length);
+    if (tk.t === 'num') { p++; return BigInt(src.slice(tk.s, tk.e)); }
+    if (tk.t === '[') {
+      p++;
+      const items = [];
+      while (toks[p] && toks[p].t !== ']') items.push(noun());
+      if (!toks[p]) err('A bracket opens here and never closes.', tk.s);
+      p++;
+      if (items.length < 2) err('A bracket must hold at least two things.', tk.s);
+      let n = items[items.length - 1];
+      for (let k = items.length - 2; k >= 0; k--) n = [items[k], n];
+      return n;
+    }
+    if (tk.t === ']') err('This bracket closes nothing.', tk.s);
+    err('Only digits, spaces and brackets belong here.', tk.s);
+  }
+  if (!toks.length) err('Nothing yet.', 0);
+  const n = noun();
+  if (p < toks.length) err('Something extra trails the answer.', toks[p].s);
+  return n;
+}
+
+function fmt(n) {
+  if (!isCell(n)) return n.toString();
+  const parts = [];
+  let cur = n;
+  while (isCell(cur)) { parts.push(fmt(cur[0])); cur = cur[1]; }
+  parts.push(fmt(cur));
+  return '[' + parts.join(' ') + ']';
+}
+function fmtExplicit(n) {
+  if (!isCell(n)) return n.toString();
+  return '[' + fmtExplicit(n[0]) + ' ' + fmtExplicit(n[1]) + ']';
+}
+
+function eq(a, b) {
+  if (isCell(a) !== isCell(b)) return false;
+  if (!isCell(a)) return a === b;
+  return eq(a[0], b[0]) && eq(a[1], b[1]);
+}
+function sameShape(a, b) {
+  if (isCell(a) !== isCell(b)) return false;
+  if (!isCell(a)) return true;
+  return sameShape(a[0], b[0]) && sameShape(a[1], b[1]);
+}
+
+function slot(ax, n) {
+  ax = atom(ax);
+  if (ax === 0n) crash('slot 0');
+  const bits = ax.toString(2);
+  let cur = n;
+  for (let k = 1; k < bits.length; k++) { need(cur); cur = bits[k] === '0' ? cur[0] : cur[1]; }
+  return cur;
+}
+function edit(ax, val, n) {
+  ax = atom(ax);
+  if (ax === 0n) crash('edit 0');
+  if (ax === 1n) return val;
+  const parent = ax / 2n;
+  if (ax % 2n === 0n) return edit(parent, [val, slot(ax + 1n, n)], n);
+  return edit(parent, [slot(ax - 1n, n), val], n);
+}
+
+function nock(s, f, budget = { n: 200000 }) {
+  while (true) {
+    if (--budget.n < 0) crash('too long');
+    const [op, rest] = need(f);
+    if (isCell(op)) return [nock(s, op, budget), nock(s, rest, budget)];
+    switch (op) {
+      case 0n: return slot(rest, s);
+      case 1n: return rest;
+      case 2n: { const [b, c] = need(rest); const s2 = nock(s, b, budget); const f2 = nock(s, c, budget); s = s2; f = f2; continue; }
+      case 3n: return isCell(nock(s, rest, budget)) ? 0n : 1n;
+      case 4n: return atom(nock(s, rest, budget)) + 1n;
+      case 5n: { const [b, c] = need(rest); return eq(nock(s, b, budget), nock(s, c, budget)) ? 0n : 1n; }
+      case 6n: { const [b, cd] = need(rest); const [c, d] = need(cd); const t = nock(s, b, budget); if (t === 0n) f = c; else if (t === 1n) f = d; else crash('bad test'); continue; }
+      case 7n: { const [b, c] = need(rest); s = nock(s, b, budget); f = c; continue; }
+      case 8n: { const [b, c] = need(rest); s = [nock(s, b, budget), s]; f = c; continue; }
+      case 9n: { const [b, c] = need(rest); const core = nock(s, c, budget); s = core; f = slot(b, core); continue; }
+      case 10n: { const [bc, d] = need(rest); const [b, c] = need(bc); return edit(b, nock(s, c, budget), nock(s, d, budget)); }
+      case 11n: { const [b, c] = need(rest); if (isCell(b)) nock(s, b[1], budget); f = c; continue; }
+      default: crash('unknown');
+    }
+  }
+}
+// run a whole program noun [subject formula]
+function run(prog) {
+  try { const [s, f] = need(prog); return { ok: true, v: nock(s, f) }; }
+  catch (e) { if (e instanceof Crash || e instanceof RangeError) return { ok: false }; throw e; }
+}
+
+// ---- puzzles: each line is a full program [subject formula] ----
+const DEC = '[8 [1 0] 8 [1 6 [5 [0 7] 4 0 6] [0 6] 9 2 [0 2] [4 0 6] 0 7] 9 2 0 1]';
+const LEVELS = [
+  { ex: ['[7 1 42]', '[[3 4] 1 9]', '[5 1 [2 3]]'], more: ['[0 1 0]', '[[6 6] 1 [6 6]]'], q: '[[8 8] 1 [0 6]]', intro: true },
+  { ex: ['[0 1 [1 2 3]]', '[0 1 [1 [2 3]]]', '[0 1 [[1 2] 3]]'], more: ['[0 1 [4 5 6 7]]', '[0 1 [4 [5 [6 7]]]]'], q: '[0 1 [[1 2] [3 4]]]' },
+  { ex: ['[[4 5] 0 2]', '[[4 5] 0 3]', '[[4 5] 0 1]'], more: ['[[[6 7] 8] 0 3]', '[9 0 1]'], q: '[[[6 7] 8] 0 2]' },
+  { ex: ['[[[6 7] 8] 0 4]', '[[[6 7] 8] 0 5]', '[[4 [5 6]] 0 6]', '[[4 [5 6]] 0 7]'], more: ['[9 0 2]', '[[[1 2] [3 4]] 0 2]'], q: '[[[1 2] [3 4]] 0 6]', unlockAxes: true },
+  { ex: ['[5 4 0 1]', '[[2 9] 4 0 3]', '[0 4 1 41]'], more: ['[[2 9] 4 0 1]', '[[2 9] 4 4 0 2]'], q: '[[3 4] 4 4 0 2]' },
+  { ex: ['[5 3 0 1]', '[[1 2] 3 0 1]', '[[1 2] 3 0 2]'], more: ['[[1 [2 3]] 3 0 3]', '[9 3 1 [9 9]]'], q: '[[7 [8 9]] 3 0 3]' },
+  { ex: ['[[4 4] 5 [0 2] [0 3]]', '[[4 5] 5 [0 2] [0 3]]', '[3 5 [1 3] [0 1]]'], more: ['[[[1 2] [1 2]] 5 [0 2] [0 3]]', '[0 5 [1 0] [1 1]]'], q: '[[2 3] 5 [4 0 2] [0 3]]' },
+  { ex: ['[[4 5] [0 3] [0 2]]', '[9 [4 0 1] [1 0]]'], more: ['[7 [0 1] [0 1] [0 1]]', '[[1 2] [3 0 1] [1 5]]'], q: '[[1 2] [4 0 2] [0 2] [1 7]]' },
+  { ex: ['[[4 5] 7 [0 3] 4 0 1]', '[7 7 [1 [2 3]] 0 2]'], more: ['[1 7 [4 0 1] 4 0 1]', '[[1 2] 7 [[0 3] [0 2]] 0 2]'], q: '[[[1 2] 3] 7 [0 2] [0 3] [0 2]]' },
+  { ex: ['[0 6 [0 1] [1 11] [1 22]]', '[1 6 [0 1] [1 11] [1 22]]', '[[3 3] 6 [5 [0 2] [0 3]] [1 7] [1 8]]'], more: ['[2 6 [0 1] [1 11] [1 22]]', '[[1 2] 6 [3 0 1] [0 2] [0 3]]'], q: '[[4 9] 6 [3 0 3] [4 0 3] [0 2]]' },
+  { ex: ['[5 8 [4 0 1] 0 1]', '[5 8 [1 9] 0 2]'], more: ['[5 8 [1 9] 0 3]', '[[1 2] 8 [0 3] 0 1]'], q: '[[2 3] 8 [4 0 3] [0 2] [0 7]]' },
+  { ex: ['[7 2 [0 1] 1 [4 0 1]]', '[[5 [4 0 1]] 2 [0 2] [0 3]]'], more: ['[[5 [0 1]] 2 [0 2] [0 3]]', '[3 2 [1 4] 1 [0 1]]'], q: '[[9 [0 1] 4 0 1] 2 [0 2] [0 3]]' },
+  { ex: ['[[1 2] 10 [2 1 9] 0 1]', '[[1 2 3] 10 [7 1 0] 0 1]'], more: ['[[1 2] 10 [1 1 5] 0 1]', '[[1 2 3] 10 [6 4 0 6] 0 1]'], q: '[[[4 5] 6] 10 [5 4 0 5] 0 1]' },
+  { ex: ['[3 11 1 4 0 1]', '[3 11 [1 1 7] 4 0 1]'], more: ['[[1 2] 11 [5 0 2] 0 3]', '[0 11 9 1 8]'], q: '[[5 6] 11 [9 0 2] 0 3]' },
+  { ex: ['[[[4 0 3] 41] 9 2 0 1]', '[[[0 7] 1 2] 9 2 0 1]'], more: ['[[[0 1] 5] 9 2 0 1]', '[[[[0 6] 4 0 7] 10 20] 9 5 0 1]'], q: '[[[[4 0 6] 0 7] 10 20] 9 4 0 1]' },
+  { ex: [`[3 ${DEC}]`, `[1 ${DEC}]`], more: [`[2 ${DEC}]`], q: `[11 ${DEC}]` },
+];
+
+
+
+// ---------- state ----------
+const KEY = 'noun-signal-v1';
+const state = { cur: 0, solved: new Set(), revealed: {}, lensAxes: false };
+try {
+  const raw = JSON.parse(localStorage.getItem(KEY) || 'null');
+  if (raw) { state.cur = raw.cur || 0; state.solved = new Set(raw.solved || []); state.revealed = raw.revealed || {}; }
+} catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify({ cur: state.cur, solved: [...state.solved], revealed: state.revealed })); } catch (e) {} };
+const axesUnlocked = () => LEVELS.some((L, i) => L.unlockAxes && state.solved.has(i));
+const maxOpen = () => { let m = 0; while (m < LEVELS.length - 1 && state.solved.has(m)) m++; return Math.max(m, ...[...state.solved].map(i => Math.min(i + 1, LEVELS.length - 1))); };
+
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+// ---------- highlighting ----------
+function highlight(src, opts = {}) {
+  const toks = tokenize(src);
+  const cls = toks.map(() => '');
+  const stack = [], partner = {};
+  toks.forEach((t, i) => {
+    if (t.t === '[') { stack.push(i); cls[i] = 'd' + ((stack.length - 1) % 4); }
+    else if (t.t === ']') {
+      if (stack.length) { const o = stack.pop(); cls[i] = cls[o]; partner[i] = o; partner[o] = i; }
+      else cls[i] = 'bad';
+    }
+    else if (t.t === 'num') cls[i] = 'num';
+    else if (t.t === 'bad') cls[i] = 'bad';
+  });
+  stack.forEach(i => { cls[i] = 'bad'; });
+  if (opts.errAt != null) toks.forEach((t, i) => { if (t.t !== 'ws' && t.s === opts.errAt && !cls[i].includes('bad')) cls[i] += ' bad'; });
+  if (opts.caret != null) {
+    const c = opts.caret;
+    const at = toks.findIndex(t => (t.t === '[' || t.t === ']') && (t.s === c - 1 || t.s === c));
+    if (at >= 0 && partner[at] != null) { cls[at] += ' match'; cls[partner[at]] += ' match'; }
+  }
+  return toks.map((t, i) => {
+    const text = esc(src.slice(t.s, t.e));
+    return cls[i] ? `<span class="${cls[i]}">${text}</span>` : text;
+  }).join('');
+}
+
+// ---------- lens (tree drawing) ----------
+let lensPinned = null; // element of pinned line
+function drawTree(n, title) {
+  $('lensSrc').textContent = title || '';
+  const box = $('lens');
+  if (n == null) { box.innerHTML = '<div class="empty">Touch a line, or write something.<br>It will be drawn here.</div>'; return; }
+  const showAx = axesUnlocked();
+  const nodes = [], edges = [];
+  let leafX = 0, maxD = 0;
+  const STEP = 40, LEV = 52, PAD = 22;
+  (function walk(x, depth, axis) {
+    maxD = Math.max(maxD, depth);
+    if (!isCell(x)) {
+      const node = { x: leafX++, d: depth, axis, leaf: x.toString() };
+      nodes.push(node); return node;
+    }
+    const l = walk(x[0], depth + 1, axis * 2);
+    const r = walk(x[1], depth + 1, axis * 2 + 1);
+    const node = { x: (l.x + r.x) / 2, d: depth, axis };
+    nodes.push(node); edges.push([node, l], [node, r]); return node;
+  })(n, 0, 1);
+  const W = Math.max(1, leafX - 1) * STEP + PAD * 2, H = maxD * LEV + PAD * 2 + (showAx ? 6 : 0);
+  const px = nd => PAD + nd.x * STEP, py = nd => PAD + nd.d * LEV;
+  let svg = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Tree of ${esc(fmt(n))}">`;
+  edges.forEach(([a, b]) => { svg += `<line class="edge" x1="${px(a)}" y1="${py(a)}" x2="${px(b)}" y2="${py(b)}"/>`; });
+  nodes.forEach(nd => {
+    const x = px(nd), y = py(nd);
+    if (nd.leaf != null) {
+      const w = Math.max(18, nd.leaf.length * 9 + 8);
+      svg += `<rect class="leafbg" x="${x - w / 2}" y="${y - 11}" width="${w}" height="22" rx="3"/><text class="leaf" x="${x}" y="${y}">${nd.leaf}</text>`;
+      if (showAx) svg += `<text class="ax" x="${x}" y="${y + 22}">${nd.axis}</text>`;
+    } else {
+      svg += `<circle class="knot" cx="${x}" cy="${y}" r="3.5"/>`;
+      if (showAx) svg += `<text class="ax" x="${x}" y="${y - 9}">${nd.axis}</text>`;
+    }
+  });
+  box.innerHTML = svg + '</svg>';
+}
+
+// ---------- rendering a level ----------
+function lineEl(src, kind) {
+  const prog = parse(src);
+  const r = run(prog);
+  const el = document.createElement('div');
+  el.className = 'line' + (kind ? ' ' + kind : '');
+  el.tabIndex = 0;
+  const resHTML = kind === 'ask' ? (state.solved.has(state.cur) ? highlight(fmt(r.v)) : '?')
+    : (r.ok ? highlight(fmt(r.v)) : '✕');
+  const resCls = kind === 'ask' && !state.solved.has(state.cur) ? 'res unknown' : (r.ok ? 'res' : 'res crash');
+  el.innerHTML = `<code class="prog"><span class="star">*</span>${highlight(fmt(prog))}</code><span class="arrow" aria-hidden="true">→</span><code class="${resCls}">${resHTML}</code>`;
+  const pin = () => {
+    if (lensPinned) lensPinned.classList.remove('pinned');
+    lensPinned = el; el.classList.add('pinned');
+    drawTree(prog, 'this line');
+  };
+  el.addEventListener('click', pin);
+  el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pin(); } });
+  el._prog = prog;
+  return el;
+}
+
+function renderStrip() {
+  const strip = $('strip'); strip.innerHTML = '';
+  const open = maxOpen();
+  LEVELS.forEach((_, i) => {
+    const b = document.createElement('button');
+    b.className = 'glyph' + (state.solved.has(i) ? ' solved' : '') + (i === state.cur ? ' current' : '');
+    b.disabled = i > open;
+    b.setAttribute('aria-label', `Transmission ${i + 1}${state.solved.has(i) ? ', received' : ''}`);
+    b.innerHTML = (i + 1).toString(2).split('').map(c => `<i class="${c === '1' ? 'on' : ''}"></i>`).join('');
+    b.addEventListener('click', () => { state.cur = i; save(); renderLevel(); });
+    strip.appendChild(b);
+  });
+}
+
+function renderLevel() {
+  const L = LEVELS[state.cur];
+  const feed = $('feed'); feed.innerHTML = '';
+  const shown = state.revealed[state.cur] || 0;
+  let delay = 0;
+  const add = (el) => { el.style.animationDelay = (delay += 70) + 'ms'; feed.appendChild(el); };
+  L.ex.forEach(s => add(lineEl(s)));
+  L.more.slice(0, shown).forEach(s => add(lineEl(s, 'hint')));
+  const ask = lineEl(L.q, 'ask');
+  add(ask);
+  lensPinned = null;
+  const solved = state.solved.has(state.cur);
+  $('answer').value = solved ? fmt(run(parse(L.q)).v) : '';
+  $('answer').disabled = solved;
+  $('send').disabled = solved;
+  $('more').disabled = shown >= L.more.length || solved;
+  $('next').hidden = !(solved && state.cur < LEVELS.length - 1);
+  $('field').className = 'field' + (solved ? ' right' : '');
+  const v = $('verdict');
+  v.className = 'verdict' + (solved ? ' yes' : '');
+  v.textContent = solved ? (state.cur === LEVELS.length - 1 ? 'Received. The signal goes quiet.' : 'Received.') : '';
+  renderStrip();
+  onInput();
+  if (!solved) drawTree(ask._prog, 'the last line');
+}
+
+// ---------- input ----------
+const ta = $('answer');
+function onInput() {
+  const src = ta.value;
+  let parsed = null, err = null;
+  try { parsed = parse(src); } catch (e) { err = e; }
+  const showErr = err && src.trim() !== '';
+  $('hl').innerHTML = highlight(src, { caret: document.activeElement === ta ? ta.selectionStart : null, errAt: showErr ? err.at : null }) + ' ';
+  ta.style.height = 'auto';
+  ta.style.height = ta.scrollHeight + 'px';
+  const ro = $('readout');
+  if (parsed) {
+    const tidy = fmt(parsed), full = fmtExplicit(parsed);
+    ro.innerHTML = `<span>reads as <code>${highlight(tidy)}</code></span>` + (isCell(parsed) && full !== tidy ? `<span>fully paired <code>${highlight(full)}</code></span>` : '');
+  } else if (showErr) ro.innerHTML = `<span class="err">${esc(err.message)}</span>`;
+  else ro.innerHTML = '';
+  return parsed;
+}
+ta.addEventListener('input', () => {
+  const p = onInput();
+  $('field').classList.remove('wrong');
+  if (p) { if (lensPinned) { lensPinned.classList.remove('pinned'); lensPinned = null; } drawTree(p, 'your reply'); }
+});
+['keyup', 'click', 'focus', 'blur', 'select'].forEach(ev => ta.addEventListener(ev, () => onInput()));
+ta.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); submit(); } });
+
+function submit() {
+  if (state.solved.has(state.cur)) return;
+  const v = $('verdict');
+  let guess;
+  try { guess = parse(ta.value); } catch (e) { v.className = 'verdict no'; v.textContent = ta.value.trim() ? e.message : 'Write something first.'; return; }
+  const want = run(parse(LEVELS[state.cur].q)).v;
+  if (eq(guess, want)) {
+    const wasLocked = !axesUnlocked();
+    state.solved.add(state.cur); save();
+    renderLevel();
+    const ask = $('feed').lastElementChild; ask.classList.add('just-solved');
+    if (wasLocked && axesUnlocked()) { v.textContent = 'Received. The lens has learned to count.'; drawTree(ask._prog, 'the last line'); }
+    if (!$('next').hidden) $('next').focus();
+  } else {
+    $('field').classList.add('wrong');
+    v.className = 'verdict no';
+    v.textContent = sameShape(guess, want) ? 'Not that. The shape is right; some numbers are not.' : 'Not that. The shape is wrong.';
+  }
+}
+$('send').addEventListener('click', submit);
+$('more').addEventListener('click', () => {
+  state.revealed[state.cur] = (state.revealed[state.cur] || 0) + 1; save();
+  const keep = ta.value; renderLevel(); ta.value = keep; onInput();
+});
+$('next').addEventListener('click', () => { state.cur = Math.min(state.cur + 1, LEVELS.length - 1); save(); renderLevel(); ta.focus(); });
+
+let armed = false;
+$('reset').addEventListener('click', e => {
+  if (!armed) { armed = true; e.target.textContent = 'Click again to forget everything'; setTimeout(() => { armed = false; e.target.textContent = 'Forget progress'; }, 3000); return; }
+  state.cur = 0; state.solved = new Set(); state.revealed = {}; save();
+  armed = false; e.target.textContent = 'Forget progress'; renderLevel();
+});
+
+renderLevel();
+</script>
+
+</body></html>
