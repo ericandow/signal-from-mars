@@ -51,6 +51,33 @@ skipping opcode 11's hint evaluation each make it fail.
 
 The only external requests are the Google Fonts `<link>`s; without network the CSS falls back to local monospace, which is fine.
 
+## Checking it in a browser
+
+`firefox --headless --screenshot` captures at the `load` event, and the levels arrive *after* that —
+the module's top-level `await fetch`. A plain screenshot of this page therefore catches it
+mid-render surprisingly often: an empty feed, or lines whose results have not painted yet. That has
+already been misread once as a collapsed grid column, and the same CSS looked fine at one window
+size and broken at another purely by timing. Make the capture wait before concluding anything.
+
+What works with no browser driver installed:
+
+1. Serve `site/` from a **`ThreadingHTTPServer`** that sleeps on one unused path (say `/_hold.gif`).
+   A plain `HTTPServer` is single-threaded and blocks every other request behind that sleep —
+   including `puzzles.json`, which then looks exactly like the bug you are chasing.
+2. Drop a throwaway probe page in `site/` (same origin, so it can reach into the game) holding an
+   `<img src="/_hold.gif">` and an `<iframe src="/">`. The image keeps `load` pending, so the
+   screenshot lands after the iframe has settled. An iframe of a given width also reproduces a
+   viewport of that width for media queries.
+3. In the probe, seed `localStorage` *before* creating the iframe to start part-way through the
+   game, drive the UI for real (`ta.value = …; ta.dispatchEvent(new w.Event('input', {bubbles: true}));
+   send.click()`), and write measurements into a `<pre>`. The screenshot then shows numbers rather
+   than something to squint at.
+4. Delete the probe afterwards — anything left in `site/` gets published.
+
+Don't stop those servers with `pkill -f <pattern>`: the pattern matches the harness's own command
+line and kills the shell running it. Kill by pid —
+`ps -eo pid,comm,args --no-headers | awk '$2=="python3" && /hold/ {print $1}' | xargs -r kill`.
+
 ## Publishing
 
 Live at **https://ericandow.github.io/signal-from-mars/**. Every push to `main` runs
@@ -121,7 +148,7 @@ custom properties), and the UI as one inline `<script type="module">`:
 - **Layout** — a three-column grid: `.rail` | the open transmission | `.lens`. The rail (`renderRail`) runs down the left edge, each glyph a binary numeral in dots, right-aligned over hidden `i.pad` spacers so the column lines up at the ones place; it is sticky and scrolls internally, so a long level set can't strand its own tail. At ≤1000px the lens drops below the transmission; at ≤620px the rail lays back out horizontally above it and the pads are dropped.
 - **Rail keyboard access** — a roving tabindex: exactly one glyph carries `tabIndex = 0` (the current one), the rest `-1`, so Tab reaches the rail once instead of walking every level. A `keydown` on the rail container moves focus with the arrow keys (both axes, since the rail turns horizontal when narrow) plus Home/End, clamped at the ends. It moves focus only — opening is still Enter or Space on the button, which keeps `renderLevel` from yanking focus out from under the arrow keys when it rebuilds the rail.
 - **What the rail reveals** — only `maxOpen() + 1` glyphs, so the set appears to end where the player has reached; solving the last visible one makes the next arrive with `.arriving`. `railShown` holds the previous count so only genuinely new glyphs animate, and stays `null` until the first render so a reload doesn't replay the whole history. Pad width comes from the *visible* count, not `LEVELS.length` — padding to the full set would quietly advertise how many are still to come, which is also why the index line reads "Transmission 3" with no total.
-- **Rendering / input** — `lineEl` builds one `*program → result` row and pins the lens on click/Enter; `renderLevel` rebuilds the feed with staggered `animationDelay`. The reply field is the standard overlay trick: a transparent `<textarea>` on top of a `<pre>` holding the highlighted copy — both must keep identical font, padding, border, and wrapping rules or the caret drifts.
+- **Rendering / input** — `lineEl` builds one `*program → result` row and pins the lens on click/Enter; `renderLevel` rebuilds the feed with staggered `animationDelay`. The reply field is the standard overlay trick: a transparent `<textarea>` on top of a `<pre>` holding the highlighted copy — both must keep identical font, padding, border, and wrapping rules or the caret drifts. Its `font-size: 17px` is above 16px on purpose, so focusing it doesn't make iOS zoom the page. **This has never been checked on a real touch device** — the layout has only been verified at narrow widths in desktop Firefox, and the overlay trick is exactly the thing that tends to misbehave under iOS text handling. Worth a real phone before trusting it.
 
 ## Conventions worth preserving
 
