@@ -57,7 +57,7 @@ h1 { font-family: var(--f-display); font-weight: 400; font-size: clamp(26px, 5vw
 .glyph.current { border-color: var(--bone); }
 .glyph.current i { border-color: var(--bone); }
 .glyph.current i.on { background: var(--bone); }
-.glyph:disabled { opacity: 0.25; cursor: default; }
+.glyph.arriving { animation: arrive 620ms ease-out both; } /* the next one, surfacing */
 .glyph:focus-visible, button:focus-visible, .line:focus-visible { outline: 2px solid var(--ice); outline-offset: 2px; }
 
 /* main grid: rail | transmission | lens */
@@ -165,7 +165,7 @@ footer button { background: none; border: 0; color: var(--dim); font-family: var
 footer button:hover { color: var(--rose); }
 
 @media (prefers-reduced-motion: reduce) {
-  .line, .line.just-solved, .line.ask .res.unknown, .waiting { animation: none; }
+  .line, .line.just-solved, .line.ask .res.unknown, .waiting, .glyph.arriving { animation: none; }
 }
 </style>
 
@@ -354,15 +354,19 @@ function lineEl(src, kind) {
   return el;
 }
 
-// The rail names no levels: a transmission is a number until you open it.
+// The rail names no levels and shows no future: a transmission is a number until
+// you open it, and the set ends where you have reached. How many are left is the
+// one thing the console never says.
+let railShown = null; // glyph count at the last render, so a new one can arrive
 function renderRail() {
   const rail = $('rail'); rail.innerHTML = '';
-  const open = maxOpen();
-  const width = LEVELS.length.toString(2).length; // pad every glyph to the widest numeral
-  LEVELS.forEach((_, i) => {
+  const shown = maxOpen() + 1;
+  const width = shown.toString(2).length; // pad to the widest numeral so far, not the widest there is
+  for (let i = 0; i < shown; i++) {
     const b = document.createElement('button');
-    b.className = 'glyph' + (state.solved.has(i) ? ' solved' : '') + (i === state.cur ? ' current' : '');
-    b.disabled = i > open;
+    const arriving = railShown != null && i >= railShown;
+    b.className = 'glyph' + (state.solved.has(i) ? ' solved' : '') + (i === state.cur ? ' current' : '')
+      + (arriving ? ' arriving' : '');
     // Numbers only, like the dots — the title is announced by the heading when it opens.
     b.setAttribute('aria-label', `Transmission ${i + 1}${state.solved.has(i) ? ', received' : ''}`);
     if (i === state.cur) b.setAttribute('aria-current', 'step');
@@ -371,12 +375,14 @@ function renderRail() {
       + bits.split('').map(c => `<i class="${c === '1' ? 'on' : ''}"></i>`).join('');
     b.addEventListener('click', () => { state.cur = i; save(); renderLevel(); });
     rail.appendChild(b);
-  });
+  }
+  railShown = shown;
 }
 
 function renderLevel() {
   const L = LEVELS[state.cur];
-  $('openIndex').textContent = `Transmission ${state.cur + 1} of ${LEVELS.length}`;
+  // No total: knowing there are sixteen would answer the question the rail is asking.
+  $('openIndex').textContent = `Transmission ${state.cur + 1}`;
   $('openTitle').textContent = L.title;
   const feed = $('feed'); feed.innerHTML = '';
   const shown = state.revealed[state.cur] || 0;
