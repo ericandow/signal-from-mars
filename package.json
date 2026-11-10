@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "comment": "No dependencies and nothing to install. This file exists only so node treats the .js files as ES modules, which is how the browser loads them too."
+}
