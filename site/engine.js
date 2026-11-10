@@ -12,7 +12,15 @@ export function tokenize(src) {
   while (i < src.length) {
     const ch = src[i];
     if (/\s/.test(ch)) { const s = i; while (i < src.length && /\s/.test(src[i])) i++; toks.push({ t: 'ws', s, e: i }); }
-    else if (ch === '[' || ch === ']') { toks.push({ t: ch, s: i, e: i + 1 }); i++; }
+    // Round brackets count as brackets. On a phone they sit on the main keyboard
+    // layer while [ and ] do not, and typing a whole noun through a layer switch
+    // is miserable. The token records the canonical kind, so the parser, the
+    // highlighter and caret matching never learn the difference; only the source
+    // text keeps whichever character was typed. Openers and closers are not
+    // required to agree, since "[0 6)" is unambiguous and refusing it would be
+    // pedantry aimed at the players this is meant to help.
+    else if (ch === '[' || ch === '(') { toks.push({ t: '[', s: i, e: i + 1 }); i++; }
+    else if (ch === ']' || ch === ')') { toks.push({ t: ']', s: i, e: i + 1 }); i++; }
     else if (/[0-9]/.test(ch)) { const s = i; while (i < src.length && /[0-9]/.test(src[i])) i++; toks.push({ t: 'num', s, e: i }); }
     else { toks.push({ t: 'bad', s: i, e: i + 1 }); i++; }
   }

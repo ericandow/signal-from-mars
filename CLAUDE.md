@@ -66,7 +66,7 @@ A Nock 4K interpreter, exported as plain functions. Imported unchanged by both t
 - `run(prog)` takes a *whole program noun* `[subject formula]` and returns `{ok: true, v}` or `{ok: false}`. It swallows `Crash` **and `RangeError`** (deep-recursion overflow) as ordinary Nock crashes; anything else rethrows.
 - `slot(axis, noun)` / `edit(axis, val, noun)` use standard Nock binary tree addressing (axis bits after the leading 1 pick head/tail).
 - `fmt` prints with right-nesting sugar (`[1 2 3]`); `fmtExplicit` prints fully paired (`[1 [2 3]]`). The readout shows both when they differ.
-- `tokenize` returns tokens with source spans (`{t, s, e}`), and is deliberately shared by the parser *and* the UI's syntax highlighter — any lexer change affects both. `parse` throws plain `Error`s carrying `e.at` (a source offset) so errors can be underlined in place; it rejects brackets holding fewer than two nouns.
+- `tokenize` returns tokens with source spans (`{t, s, e}`), and is deliberately shared by the parser *and* the UI's syntax highlighter — any lexer change affects both. `(` and `)` lex as `[` and `]`: the token carries the canonical kind while the span still points at whatever was typed, so parens parse, colour and caret-match exactly like brackets without anything downstream knowing. Openers and closers are not required to agree (`[0 6)` is fine) — the point is to spare phone keyboards a layer switch, and half-enforcing it would defeat that. Output is always brackets, so the readout's "reads as [0 6]" doubles as confirmation that parens were understood. `parse` throws plain `Error`s carrying `e.at` (a source offset) so errors can be underlined in place; it rejects brackets holding fewer than two nouns.
 - `loadLevels(doc)` turns a parsed `puzzles.json` into the array the UI renders. It is the one validator: the browser and the CLI tool both go through it, so a level set that passes `check-puzzles.js` will load. It collects **every** problem and throws them as one multi-line `Error` rather than stopping at the first.
 
 ## `site/puzzles.json`
@@ -85,7 +85,8 @@ A Nock 4K interpreter, exported as plain functions. Imported unchanged by both t
 }
 ```
 
-Every string is a **complete program noun** `[subject formula]`.
+Every string is a **complete program noun** `[subject formula]`. Parens work here too, since it
+is the same lexer, but puzzle files should stay with brackets — that is the form the game displays.
 
 - **Answers are never stored.** The expected answer is `run(parse(L.q)).v`, computed at submit time. Authoring a level means writing programs whose results teach the rule.
 - Programs that crash are legitimate teaching material — they render as `✕`. Several entries in `more` crash on purpose. A crashing `q` is rejected, because the player has no way to type `✕`.

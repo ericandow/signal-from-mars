@@ -30,7 +30,10 @@ Edit `site/puzzles.json` and reload — nothing else to touch. Each level is
 
 where every program string is a whole Nock program: `ex` is shown with its answer, `more` is held
 back behind "Another example", and `q` is the one the player has to work out. The `title` appears
-when the level is opened — the selector down the left side stays wordless. Answers are computed by
+when the level is opened — the selector down the left side stays wordless.
+
+Players can answer with `(` and `)` as well as `[` and `]`, so a phone keyboard never needs a layer
+switch; the game always displays brackets. Answers are computed by
 running the program, so there is nothing to keep in sync. `$NAME` splices in an entry from
 `macros` at the top of the file.
 
